@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react'
-import { Chess } from 'chess.js'
+import { Chess, Square } from 'chess.js'
 
 export interface ChessState {
   game: Chess
@@ -36,7 +36,7 @@ function chessReducer(state: ChessState, action: ChessAction): ChessState {
   switch (action.type) {
     case 'SELECT_SQUARE':
       const validMoves = action.payload 
-        ? state.game.moves({ square: action.payload, verbose: true }).map(move => move.to)
+        ? state.game.moves({ square: action.payload as Square, verbose: true }).map(move => move.to)
         : []
       
       return {
@@ -67,7 +67,7 @@ function chessReducer(state: ChessState, action: ChessAction): ChessState {
       }
       let lastMoveSquares = null;
       if (moveResult && moveResult.from && moveResult.to) {
-        lastMoveSquares = { from: moveResult.from, to: moveResult.to };
+        lastMoveSquares = { from: moveResult.from as string, to: moveResult.to as string };
       }
       const moveHistory = [...state.moveHistory, san];
       const capturedPieces = getCapturedPieces(newGame);

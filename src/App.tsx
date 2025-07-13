@@ -1,4 +1,3 @@
-import React from 'react'
 import ChessGame from './components/ChessGame'
 import { ChessProvider } from './context/ChessContext'
 import { motion } from 'framer-motion'

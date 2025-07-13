@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import ChessPiece from './ChessPiece'
 import { useChess } from '../context/ChessContext'
-import { Chess as ChessJs } from 'chess.js'
+import { Chess as ChessJs, Square } from 'chess.js'
 
 const promotionPieces = ['q', 'r', 'b', 'n']
 
@@ -39,7 +39,7 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
   setTriggerStockfishFirstMove
 }) => {
   const { state, dispatch } = useChess()
-  const { game, selectedSquare, validMoves, isFlipped, lastMoveSquares, turn } = state
+  const { game, selectedSquare, validMoves, isFlipped, lastMoveSquares } = state
 
   const [promotion, setPromotion] = useState<null | { from: string; to: string }>(null)
 
@@ -57,7 +57,7 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
     if (selectedSquare === square) return 'chess-square-highlight'
     if (lastMoveSquares && (square === lastMoveSquares.from || square === lastMoveSquares.to)) return 'chess-square-lastmove'
     if (validMoves.includes(square)) {
-      const piece = game.get(square)
+      const piece = game.get(square as Square)
       return piece ? 'chess-square-capture' : 'chess-square-move'
     }
     return ''
@@ -74,14 +74,14 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
   const handleSquareClick = (square: string) => {
     // If playing vs computer, only allow user to move as their color
     if (vsComputer && game.turn() !== playerColor) return;
-    const piece = game.get(square)
+    const piece = game.get(square as Square)
     // If no piece is selected and clicked square has a piece of current player's color
     if (!selectedSquare && piece && piece.color === game.turn()) {
       dispatch({ type: 'SELECT_SQUARE', payload: square })
     }
     // If a piece is selected and clicked square is a valid move
     else if (selectedSquare && validMoves.includes(square)) {
-      const movingPiece = game.get(selectedSquare)
+      const movingPiece = game.get(selectedSquare as Square)
       // Check for pawn promotion
       if (
         movingPiece &&
@@ -273,7 +273,7 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
           {getDisplayRanks().map((rank) =>
             getDisplayFiles().map((file) => {
               const square = `${file}${rank}`
-              const piece = game.get(square)
+              const piece = game.get(square as Square)
               const squareColor = getSquareColor(file, rank)
               const highlight = getSquareHighlight(square)
               
