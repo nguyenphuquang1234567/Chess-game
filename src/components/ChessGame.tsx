@@ -5,6 +5,7 @@ import GameControls from './GameControls'
 import MoveHistory from './MoveHistory'
 import CapturedPiecesContainer from './CapturedPieces'
 import ChatBot from './ChatBot'
+import EvaluationBar from './EvaluationBar'
 import { useChess } from '../context/ChessContext'
 
 const ChessGame: React.FC = () => {
@@ -190,10 +191,11 @@ const ChessGame: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start"
+            className="flex flex-col lg:flex-row gap-8 items-start justify-center"
           >
-            {/* Main Chess Board */}
-            <div className="lg:col-span-2 flex justify-center">
+            {/* Chess Board with Evaluation Bar */}
+            <div className="flex items-start gap-4">
+              {/* Main Chess Board */}
               <motion.div 
                 className="relative"
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -208,7 +210,27 @@ const ChessGame: React.FC = () => {
                   setTriggerStockfishFirstMove={setTriggerStockfishFirstMove}
                 />
               </motion.div>
+
+              {/* Evaluation Bar */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="hidden lg:block"
+              >
+                <EvaluationBar />
+              </motion.div>
             </div>
+
+            {/* Mobile Evaluation Bar */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="lg:hidden flex justify-center"
+            >
+              <EvaluationBar />
+            </motion.div>
 
             {/* Side Panel */}
             <div className="space-y-6">
