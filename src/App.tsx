@@ -16,14 +16,6 @@ function App() {
             >
               Chess Game
             </motion.h1>
-            <motion.p 
-              className="text-gray-300 text-lg"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-            >
-              Play chess like the pros
-            </motion.p>
           </header>
           <ChessGame />
         </div>
