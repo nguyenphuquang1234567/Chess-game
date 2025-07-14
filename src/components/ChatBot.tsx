@@ -15,43 +15,6 @@ interface ChatBotProps {
   skillLevel: number
 }
 
-function evaluatePositionWithStockfish(fen: string, skillLevel: number): Promise<number> {
-  return new Promise((resolve) => {
-    if (!window.stockfishScript) {
-      resolve(0); // fallback
-      return;
-    }
-    const stockfish = new window.Worker(URL.createObjectURL(new Blob([window.stockfishScript], { type: 'application/javascript' })));
-    let resolved = false;
-    stockfish.onmessage = (event: any) => {
-      const line = typeof event.data === 'string' ? event.data : event;
-      if (line.startsWith('info depth')) {
-        const match = line.match(/score (cp|mate) ([\-\d]+)/);
-        if (match) {
-          let score = 0;
-          if (match[1] === 'cp') {
-            score = parseInt(match[2], 10);
-          } else if (match[1] === 'mate') {
-            score = match[2].startsWith('-') ? -10000 : 10000;
-          }
-          if (!resolved) {
-            resolved = true;
-            stockfish.terminate();
-            resolve(score);
-          }
-        }
-      }
-    };
-    stockfish.postMessage('uci');
-    stockfish.postMessage('ucinewgame');
-    stockfish.postMessage('setoption name Skill Level value ' + skillLevel);
-    stockfish.postMessage('position fen ' + fen);
-    stockfish.postMessage('go depth 10');
-    // Fallback in case Stockfish doesn't respond
-    setTimeout(() => { if (!resolved) { resolved = true; stockfish.terminate(); resolve(0); } }, 3000);
-  });
-}
-
 const ChatBot: React.FC<ChatBotProps> = ({ vsComputer, playerColor, skillLevel }) => {
   const { state } = useChess()
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -114,7 +77,6 @@ const ChatBot: React.FC<ChatBotProps> = ({ vsComputer, playerColor, skillLevel }
 
   // Generate comments for moves
   const generateMoveComment = (move: string, isPlayerMove: boolean) => {
-    const moveText = move
     const isCapture = move.includes('x')
     const isCheck = move.includes('+')
     const isCheckmate = move.includes('#')
