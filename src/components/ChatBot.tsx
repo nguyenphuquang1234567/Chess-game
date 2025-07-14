@@ -15,6 +15,43 @@ interface ChatBotProps {
   skillLevel: number
 }
 
+function evaluatePositionWithStockfish(fen: string, skillLevel: number): Promise<number> {
+  return new Promise((resolve) => {
+    if (!window.stockfishScript) {
+      resolve(0); // fallback
+      return;
+    }
+    const stockfish = new window.Worker(URL.createObjectURL(new Blob([window.stockfishScript], { type: 'application/javascript' })));
+    let resolved = false;
+    stockfish.onmessage = (event: any) => {
+      const line = typeof event.data === 'string' ? event.data : event;
+      if (line.startsWith('info depth')) {
+        const match = line.match(/score (cp|mate) ([\-\d]+)/);
+        if (match) {
+          let score = 0;
+          if (match[1] === 'cp') {
+            score = parseInt(match[2], 10);
+          } else if (match[1] === 'mate') {
+            score = match[2].startsWith('-') ? -10000 : 10000;
+          }
+          if (!resolved) {
+            resolved = true;
+            stockfish.terminate();
+            resolve(score);
+          }
+        }
+      }
+    };
+    stockfish.postMessage('uci');
+    stockfish.postMessage('ucinewgame');
+    stockfish.postMessage('setoption name Skill Level value ' + skillLevel);
+    stockfish.postMessage('position fen ' + fen);
+    stockfish.postMessage('go depth 10');
+    // Fallback in case Stockfish doesn't respond
+    setTimeout(() => { if (!resolved) { resolved = true; stockfish.terminate(); resolve(0); } }, 3000);
+  });
+}
+
 const ChatBot: React.FC<ChatBotProps> = ({ vsComputer, playerColor, skillLevel }) => {
   const { state } = useChess()
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -90,165 +127,160 @@ const ChatBot: React.FC<ChatBotProps> = ({ vsComputer, playerColor, skillLevel }
     if (isCheckmate) {
       const comments = isPlayerMove 
         ? [
-            `You fluked ${moveText}. Even a toddler could do better.`,
-            `Checkmate? Ugh. You must be so proud.`,
-            `Congrats, you tripped over the finish line with ${moveText}.`
+            `Checkmate! You win! 🏆`,
+            `Wow, you got me! 👏`,
+            `Checkmate. Impressive! 🎯`
           ]
         : [
-            `I move ${moveText}. Utter annihilation.`,
-            `I move ${moveText}. You never stood a chance.`,
-            `I move ${moveText}. Pathetic resistance.`
+            `Checkmate! I win! 🏆`,
+            `Game over for you! 💀`,
+            `Checkmate! Try again? ⚰️`
           ]
       comment = comments[Math.floor(Math.random() * comments.length)]
     } else if (isCheck) {
       const comments = isPlayerMove
         ? [
-            `Check with ${moveText}? Yawn.`,
-            `Wow, ${moveText}. Try harder.`,
-            `Threatening my king? Cute.`
+            `Check! Nice pressure! ⚡`,
+            `Check! Can I escape? 🔥`,
+            `Check! You got me thinking! ⚔️`
           ]
         : [
-            `I move ${moveText}. Tremble, worm.`,
-            `I move ${moveText}. Try not to cry.`,
-            `I move ${moveText}. You call that defense?`
+            `Check! Watch your king! ⚡`,
+            `Check! Feeling nervous? 🔥`,
+            `Check! Can you defend? ⚔️`
           ]
       comment = comments[Math.floor(Math.random() * comments.length)]
     } else if (isCastle) {
       const comments = isPlayerMove
         ? [
-            `Castling? How original.`,
-            `Wow, ${moveText}. You read the rules.`,
-            `Castled. Still doomed.`
+            `Castling! Playing it safe? 🏰`,
+            `Castled! Good call! 🏰`,
+            `Castle! Now what? 🏰`
           ]
         : [
-            `I move ${moveText}. Textbook brilliance.`,
-            `I move ${moveText}. You wish you could.`,
-            `I move ${moveText}. Try to keep up.`
+            `Castling! My king is safe! 🏰`,
+            `Castle time! Ready? 🏰`,
+            `Castled! What will you do? 🏰`
           ]
       comment = comments[Math.floor(Math.random() * comments.length)]
     } else if (isEnPassant) {
       const comments = isPlayerMove
         ? [
-            `En passant? Accident or miracle?`,
-            `You actually know en passant? Shocking.`,
-            `En passant. Even you get lucky.`
+            `En passant! Sneaky! 🎯`,
+            `En passant! Didn’t see that coming! 🎯`,
+            `En passant! Nice trick! 🎯`
           ]
         : [
-            `I move ${moveText}. You didn't see that coming.`,
-            `I move ${moveText}. Too advanced for you.`,
-            `I move ${moveText}. Outclassed again.`
+            `En passant! Bet you missed that! 🎯`,
+            `En passant! Surprise! 🎯`,
+            `En passant! Gotcha! 🎯`
           ]
       comment = comments[Math.floor(Math.random() * comments.length)]
     } else if (isPromotion) {
       const comments = isPlayerMove
         ? [
-            `Promotion? Don't get cocky.`,
-            `Queen? Like it'll help.`,
-            `Congrats, you found the promote button.`
+            `Promotion! Queen time! 👑`,
+            `Promotion! Big move! 👑`,
+            `Promotion! Now it’s serious! 👑`
           ]
         : [
-            `I move ${moveText}. Another queen. You're finished.`,
-            `I move ${moveText}. Watch and weep.`,
-            `I move ${moveText}. Too easy.`
+            `Promotion! My queen’s here! 👑`,
+            `Promotion! Watch out! 👑`,
+            `Promotion! Let’s finish this! 👑`
           ]
       comment = comments[Math.floor(Math.random() * comments.length)]
     } else if (isCapture) {
       const comments = isPlayerMove
         ? [
-            `You captured? Blind luck.`,
-            `Wow, ${moveText}. Even a monkey could.`,
-            `Congrats, you found a free piece.`
+            `Capture! Got your piece! 💥`,
+            `Capture! Feeling good? 💥`,
+            `Capture! That hurt? 💥`
           ]
         : [
-            `I move ${moveText}. Another piece gone.`,
-            `I move ${moveText}. You make this too easy.`,
-            `I move ${moveText}. You call that defense?`
+            `Capture! My piece now! 💥`,
+            `Capture! Did you see that? 💥`,
+            `Capture! Oops! 💥`
           ]
       comment = comments[Math.floor(Math.random() * comments.length)]
     } else {
       // Regular moves
       const piece = move.charAt(0)
       const isPawnMove = piece === piece.toLowerCase()
-      
+      const pieceNames = {
+        'N': 'knight', 'B': 'bishop', 'R': 'rook', 'Q': 'queen', 'K': 'king'
+      }
+      const pieceName = pieceNames[piece as keyof typeof pieceNames] || 'piece'
       if (isPawnMove) {
         const comments = isPlayerMove
           ? [
-              `Pawn move. Riveting.`,
-              `You moved a pawn. Groundbreaking.`,
-              `Wow, ${moveText}. Inspiring stuff.`
+              `Pawn move. Keeping it simple! ♟️`,
+              `Pawn up! What’s next? ♟️`,
+              `Pawn push! Your plan? ♟️`
             ]
           : [
-              `I move ${moveText}. Effortless.`,
-              `I move ${moveText}. Try to keep up.`,
-              `I move ${moveText}. You can't stop me.`
+              `Pawn move. My turn! ♟️`,
+              `Pawn up! Can you stop me? ♟️`,
+              `Pawn push! Watch out! ♟️`
             ]
         comment = comments[Math.floor(Math.random() * comments.length)]
       } else {
-        const pieceNames = {
-          'N': 'knight', 'B': 'bishop', 'R': 'rook', 'Q': 'queen', 'K': 'king'
-        }
-        const pieceName = pieceNames[piece as keyof typeof pieceNames] || 'piece'
-        
         const comments = isPlayerMove
           ? [
-              `Moved your ${pieceName}? Still hopeless.`,
-              `Wow, ${moveText}. Try again.`,
-              `Developing pieces? Too little, too late.`
+              `${pieceName} move! Bold! ♞`,
+              `${pieceName} out! What’s next? ♞`,
+              `${pieceName} goes! Your reply? ♞`
             ]
           : [
-              `I move ${moveText}. Learn from greatness.`,
-              `I move ${moveText}. You wish you could.`,
-              `I move ${moveText}. Bow down.`
+              `${pieceName} move! My attack! ♞`,
+              `${pieceName} out! Can you handle it? ♞`,
+              `${pieceName} goes! Ready? ♞`
             ]
         comment = comments[Math.floor(Math.random() * comments.length)]
       }
     }
 
-    // Add difficulty-specific comments
+    // Add difficulty-specific flavor (short)
     if (skillLevel <= 5) {
-      const easyComments = isPlayerMove 
-        ? [' (Even you can manage this.)', ' (Beginner luck.)', ' (Try not to mess up.)']
-        : [' (I could beat you blindfolded.)', ' (Barely trying.)', ' (This is child\'s play.)']
-      comment += easyComments[Math.floor(Math.random() * easyComments.length)]
-    } else if (skillLevel >= 15) {
-      const expertComments = isPlayerMove 
-        ? [' (You\'re still trash.)', ' (I\'m not even sweating.)', ' (You\'ll never win.)']
-        : [' (Witness perfection.)', ' (You\'re hopeless.)', ' (I\'m untouchable.)']
-      comment += expertComments[Math.floor(Math.random() * expertComments.length)]
+      comment += ' (Let’s keep it fun!)'
     }
 
-    return comment
+    return { comment }
   }
 
   // Generate game status comments
   const generateStatusComment = (status: string) => {
+    const moveCount = state.moveHistory.length
+    const isOpening = moveCount <= 10
+    const isMiddlegame = moveCount > 10 && moveCount <= 30
+    const isEndgame = moveCount > 30
+    
     switch (status) {
       case 'checkmate':
         const checkmateComments = [
-          '🏆 Game Over! Someone actually won!',
-          '💫 The game ends in checkmate! (Surprising, I know)',
-          '🎯 Checkmate! A decisive victory! (For once)'
+          `🏆 Checkmate! ${isEndgame ? 'Endgame precision!' : 'Middlegame tactics!'} Game over!`,
+          `💫 Checkmate! ${isOpening ? 'Early blunder!' : 'Strategic win!'} Victory!`,
+          `🎯 Checkmate! ${isMiddlegame ? 'Complex play!' : 'Endgame technique!'} Decisive!`
         ]
         return checkmateComments[Math.floor(Math.random() * checkmateComments.length)]
       case 'stalemate':
         const stalemateComments = [
-          '🤝 Game drawn by stalemate. A tactical deadlock! (How boring)',
-          '⚖️ Stalemate! Neither player can win! (Typical)',
-          '🔒 The game ends in stalemate - a draw! (Yawn)'
+          `🤝 Stalemate! ${isEndgame ? 'Resourceful defense!' : 'Tactical deadlock!'} Draw!`,
+          `⚖️ Stalemate! ${isMiddlegame ? 'Complex defense!' : 'Endgame skill!'} Draw!`,
+          `🔒 Stalemate! ${isOpening ? 'Early error!' : 'Defensive skill!'} Draw!`
         ]
         return stalemateComments[Math.floor(Math.random() * stalemateComments.length)]
       case 'draw':
         const drawComments = [
-          '🤝 Game drawn. Neither player can win! (How predictable)',
-          '⚖️ It\'s a draw! Equal play from both sides. (Boring)',
-          '🤝 The game ends in a draw! (At least it\'s over)'
+          `🤝 Draw! ${isEndgame ? 'Equal endgame!' : 'Balanced play!'} Draw!`,
+          `⚖️ Draw! ${isOpening ? 'Equal opening!' : 'Balanced tactics!'} Draw!`,
+          `🤝 Draw! ${isMiddlegame ? 'Complex balance!' : 'Equal skill!'} Draw!`
         ]
         return drawComments[Math.floor(Math.random() * drawComments.length)]
       case 'check':
         const checkComments = [
-          '⚡ Check! The king is under attack! (Duh)',
-          '🔥 Check! The king is in danger! (Obviously)',
-          '⚔️ Check! Defend your king! (If you can)'
+          `⚡ Check! ${isOpening ? 'Early danger!' : 'Tactical opportunity!'} Defend!`,
+          `🔥 Check! ${isMiddlegame ? 'Middlegame tactics!' : 'Endgame safety!'} King under attack!`,
+          `⚔️ Check! ${isEndgame ? 'Endgame pressure!' : 'Tactical threat!'} Danger!`
         ]
         return checkComments[Math.floor(Math.random() * checkComments.length)]
       default:
@@ -258,34 +290,29 @@ const ChatBot: React.FC<ChatBotProps> = ({ vsComputer, playerColor, skillLevel }
 
   // Watch for new moves and generate comments
   React.useEffect(() => {
-    if (!vsComputer) return
+    if (!vsComputer) return;
 
-    const currentMoveCount = state.moveHistory.length
-    const previousMoveCount = messages.filter(m => m.type === 'player' || m.type === 'computer').length
+    const currentMoveCount = state.moveHistory.length;
+    const previousMoveCount = messages.filter(m => m.type === 'player' || m.type === 'computer').length;
 
     if (currentMoveCount > previousMoveCount) {
-      const newMove = state.moveHistory[currentMoveCount - 1]
+      const newMove = state.moveHistory[currentMoveCount - 1];
       const isPlayerMove = (currentMoveCount % 2 === 1 && playerColor === 'w') || 
-                          (currentMoveCount % 2 === 0 && playerColor === 'b')
-      
-      const comment = generateMoveComment(newMove, isPlayerMove)
-      const messageType = isPlayerMove ? 'player' : 'computer'
-      
+                        (currentMoveCount % 2 === 0 && playerColor === 'b');
+      const { comment } = generateMoveComment(newMove, isPlayerMove);
+      const messageType: 'player' | 'computer' = isPlayerMove ? 'player' : 'computer';
       const newMessage: ChatMessage = {
         id: Date.now().toString(),
         text: comment,
         type: messageType,
         timestamp: new Date()
-      }
-      
-      setMessages(prev => [...prev, newMessage])
-      
-      // Speak all messages
+      };
+      setMessages(prev => [...prev, newMessage]);
       if (voiceEnabled) {
-        speakText(comment)
+        speakText(newMessage.text);
       }
     }
-  }, [state.moveHistory, vsComputer, playerColor, voiceEnabled])
+  }, [state.moveHistory, vsComputer, playerColor, voiceEnabled]);
 
   // Watch for game status changes
   React.useEffect(() => {
@@ -316,9 +343,9 @@ const ChatBot: React.FC<ChatBotProps> = ({ vsComputer, playerColor, skillLevel }
       // Add welcome message when game starts
       if (vsComputer) {
         const welcomeMessages = [
-          `🎮 Oh great, another human to crush. Let's see what you've got...`,
-          `🤖 Hello meatbag! I'm your sarcastic chess commentator. Try not to embarrass yourself.`,
-          `♟️ Ready to lose? I'll be here to comment on your... interesting... moves.`
+          `🎮 Chess AI ready! I'll analyze your moves and challenge your thinking. Ready?`,
+          `🤖 Hello! I'm your chess coach. I'll guide you and test your skills. Let's play!`,
+          `♟️ Advanced commentator online! I'll analyze and challenge you. Game on!`
         ]
         const welcomeMessage: ChatMessage = {
           id: 'welcome',
@@ -549,4 +576,4 @@ const ChatBot: React.FC<ChatBotProps> = ({ vsComputer, playerColor, skillLevel }
   )
 }
 
-export default ChatBot 
+export default ChatBot; 
