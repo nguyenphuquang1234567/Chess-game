@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useChess } from '../context/ChessContext'
 
@@ -19,6 +19,61 @@ const ChatBot: React.FC<ChatBotProps> = ({ vsComputer, playerColor, skillLevel }
   const { state } = useChess()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isExpanded, setIsExpanded] = useState(false)
+  const [voiceEnabled, setVoiceEnabled] = useState(false)
+  const [voiceVolume, setVoiceVolume] = useState(0.7)
+  const [voiceRate, setVoiceRate] = useState(1.0)
+  const [voicePitch, setVoicePitch] = useState(1.0)
+  const [showVoiceSettings, setShowVoiceSettings] = useState(false)
+  const speechSynthesisRef = useRef<SpeechSynthesis | null>(null)
+  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
+
+  // Initialize speech synthesis
+  useEffect(() => {
+    if ('speechSynthesis' in window) {
+      speechSynthesisRef.current = window.speechSynthesis
+    }
+  }, [])
+
+  // Function to speak text
+  const speakText = (text: string) => {
+    if (!speechSynthesisRef.current || !voiceEnabled) return
+
+    // Cancel any current speech
+    if (currentUtteranceRef.current) {
+      speechSynthesisRef.current.cancel()
+    }
+
+    // Clean text for speech (remove emojis and special characters)
+    const cleanText = text.replace(/[^\w\s.,!?-]/g, '').trim()
+    if (!cleanText) return
+
+    const utterance = new SpeechSynthesisUtterance(cleanText)
+    
+    // Get available voices and set a good one
+    const voices = speechSynthesisRef.current.getVoices()
+    const preferredVoice = voices.find(voice => 
+      voice.lang.includes('en') && (voice.name.includes('Google') || voice.name.includes('Samantha'))
+    ) || voices.find(voice => voice.lang.includes('en')) || voices[0]
+    
+    if (preferredVoice) {
+      utterance.voice = preferredVoice
+    }
+
+    utterance.volume = voiceVolume
+    utterance.rate = voiceRate
+    utterance.pitch = voicePitch
+
+    currentUtteranceRef.current = utterance
+    speechSynthesisRef.current.speak(utterance)
+  }
+
+  // Function to stop speech
+  const stopSpeech = () => {
+    if (speechSynthesisRef.current) {
+      speechSynthesisRef.current.cancel()
+      currentUtteranceRef.current = null
+    }
+  }
 
   // Generate comments for moves
   const generateMoveComment = (move: string, isPlayerMove: boolean) => {
@@ -224,8 +279,13 @@ const ChatBot: React.FC<ChatBotProps> = ({ vsComputer, playerColor, skillLevel }
       }
       
       setMessages(prev => [...prev, newMessage])
+      
+      // Speak all messages
+      if (voiceEnabled) {
+        speakText(comment)
+      }
     }
-  }, [state.moveHistory, vsComputer, playerColor])
+  }, [state.moveHistory, vsComputer, playerColor, voiceEnabled])
 
   // Watch for game status changes
   React.useEffect(() => {
@@ -241,8 +301,13 @@ const ChatBot: React.FC<ChatBotProps> = ({ vsComputer, playerColor, skillLevel }
       }
       
       setMessages(prev => [...prev, newMessage])
+      
+      // Speak system messages
+      if (voiceEnabled) {
+        speakText(statusComment)
+      }
     }
-  }, [state.gameStatus, vsComputer])
+  }, [state.gameStatus, vsComputer, voiceEnabled])
 
   // Clear messages when game resets and add welcome message
   React.useEffect(() => {
@@ -262,9 +327,21 @@ const ChatBot: React.FC<ChatBotProps> = ({ vsComputer, playerColor, skillLevel }
           timestamp: new Date()
         }
         setMessages([welcomeMessage])
+        
+        // Speak welcome message
+        if (voiceEnabled) {
+          speakText(welcomeMessage.text)
+        }
       }
     }
-  }, [state.moveHistory, vsComputer])
+  }, [state.moveHistory, vsComputer, voiceEnabled])
+
+  // Cleanup speech on unmount
+  useEffect(() => {
+    return () => {
+      stopSpeech()
+    }
+  }, [])
 
   if (!vsComputer) return null
 
@@ -284,13 +361,102 @@ const ChatBot: React.FC<ChatBotProps> = ({ vsComputer, playerColor, skillLevel }
           🤖 Chess Assistant
           <span className="text-xs text-gray-400 bg-gray-700/50 px-2 py-1 rounded">Level {skillLevel}</span>
         </h3>
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="text-gray-400 hover:text-white transition-colors duration-200 bg-gray-700/50 rounded-full w-6 h-6 flex items-center justify-center hover:bg-gray-600/50"
-        >
-          {isExpanded ? '−' : '+'}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Voice Controls */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setVoiceEnabled(!voiceEnabled)}
+              className={`p-2 rounded-full transition-all duration-200 ${
+                voiceEnabled 
+                  ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' 
+                  : 'bg-gray-700/50 text-gray-400 hover:bg-gray-600/50'
+              }`}
+              title={voiceEnabled ? 'Disable Voice' : 'Enable Voice'}
+            >
+              {voiceEnabled ? '🔊' : '🔇'}
+            </button>
+            {voiceEnabled && (
+              <>
+                <button
+                  onClick={() => setShowVoiceSettings(!showVoiceSettings)}
+                  className="p-2 rounded-full bg-gray-700/50 text-gray-400 hover:bg-gray-600/50 transition-all duration-200"
+                  title="Voice Settings"
+                >
+                  ⚙️
+                </button>
+                <button
+                  onClick={stopSpeech}
+                  className="p-2 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all duration-200"
+                  title="Stop Speech"
+                >
+                  ⏹️
+                </button>
+              </>
+            )}
+          </div>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-gray-400 hover:text-white transition-colors duration-200 bg-gray-700/50 rounded-full w-6 h-6 flex items-center justify-center hover:bg-gray-600/50"
+          >
+            {isExpanded ? '−' : '+'}
+          </button>
+        </div>
       </div>
+
+      {/* Voice Settings Panel */}
+      <AnimatePresence>
+        {showVoiceSettings && voiceEnabled && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden mb-4 p-4 bg-gray-800/50 rounded-lg border border-gray-600/30"
+          >
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-gray-300">Volume</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={voiceVolume}
+                  onChange={(e) => setVoiceVolume(parseFloat(e.target.value))}
+                  className="w-24 h-2 voice-slider"
+                />
+                <span className="text-xs text-gray-400 w-8">{Math.round(voiceVolume * 100)}%</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-gray-300">Speed</label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2"
+                  step="0.1"
+                  value={voiceRate}
+                  onChange={(e) => setVoiceRate(parseFloat(e.target.value))}
+                  className="w-24 h-2 voice-slider"
+                />
+                <span className="text-xs text-gray-400 w-8">{voiceRate}x</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-gray-300">Pitch</label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2"
+                  step="0.1"
+                  value={voicePitch}
+                  onChange={(e) => setVoicePitch(parseFloat(e.target.value))}
+                  className="w-24 h-2 voice-slider"
+                />
+                <span className="text-xs text-gray-400 w-8">{voicePitch}x</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {isExpanded && (
@@ -328,6 +494,15 @@ const ChatBot: React.FC<ChatBotProps> = ({ vsComputer, playerColor, skillLevel }
                           {message.timestamp.toLocaleTimeString()}
                         </p>
                       </div>
+                      {voiceEnabled && (
+                        <button
+                          onClick={() => speakText(message.text)}
+                          className="text-gray-400 hover:text-white transition-colors duration-200 p-1"
+                          title="Replay message"
+                        >
+                          🔊
+                        </button>
+                      )}
                     </div>
                   </motion.div>
                 ))}
@@ -358,6 +533,15 @@ const ChatBot: React.FC<ChatBotProps> = ({ vsComputer, playerColor, skillLevel }
             <p className="text-sm text-gray-100 font-medium truncate">
               {messages[messages.length - 1].text}
             </p>
+            {voiceEnabled && (
+              <button
+                onClick={() => speakText(messages[messages.length - 1].text)}
+                className="text-gray-400 hover:text-white transition-colors duration-200 p-1 ml-auto"
+                title="Replay message"
+              >
+                🔊
+              </button>
+            )}
           </div>
         </motion.div>
       )}
