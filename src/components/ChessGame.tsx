@@ -261,34 +261,7 @@ const ChessGame: React.FC = () => {
           </motion.div>
 
           {/* Instructions */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-            className="mt-8 glass-panel rounded-lg p-6 shadow-lg"
-          >
-            <h3 className="text-lg font-semibold text-white mb-4">How to Play</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-300">
-              <div>
-                <h4 className="font-medium text-white mb-2">Basic Controls</h4>
-                <ul className="space-y-1">
-                  <li>• Click on a piece to select it</li>
-                  <li>• Click on a highlighted square to move</li>
-                  <li>• Green squares show valid moves</li>
-                  <li>• Red squares show capture moves</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-medium text-white mb-2">Game Features</h4>
-                <ul className="space-y-1">
-                  <li>• Automatic move validation</li>
-                  <li>• Move history tracking</li>
-                  <li>• Captured pieces display</li>
-                  <li>• Board flip option</li>
-                </ul>
-              </div>
-            </div>
-          </motion.div>
+          {/* Removed the How to Play bar */}
         </>
       )}
     </div>
