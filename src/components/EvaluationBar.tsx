@@ -26,7 +26,23 @@ const EvaluationBar: React.FC<EvaluationBarProps> = ({ className = '' }) => {
 
   // Calculate evaluation using Stockfish
   useEffect(() => {
-    if (!state.game) return
+    if (!state.game) return;
+
+    // If the game is at the initial position, set evaluation to 0
+    if (state.game.history().length === 0) {
+      setEvaluation(0);
+      setMateMoves(null);
+      setIsCalculating(false);
+      return;
+    }
+
+    // If the game is a draw, set evaluation to 0
+    if (state.game.isDraw() || state.game.isStalemate() || state.game.isThreefoldRepetition() || state.game.isInsufficientMaterial()) {
+      setEvaluation(0);
+      setMateMoves(null);
+      setIsCalculating(false);
+      return;
+    }
 
     setIsCalculating(true)
     setMateMoves(null)

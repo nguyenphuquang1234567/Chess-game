@@ -7,6 +7,7 @@ import CapturedPiecesContainer from './CapturedPieces'
 import ChatBot from './ChatBot'
 import EvaluationBar from './EvaluationBar'
 import { useChess } from '../context/ChessContext'
+import GameReview from './GameReview'
 
 const ChessGame: React.FC = () => {
   const [vsComputer, setVsComputer] = useState(false)
@@ -14,7 +15,7 @@ const ChessGame: React.FC = () => {
   const [skillLevel, setSkillLevel] = useState(10) // Default to medium difficulty
   const [gameStarted, setGameStarted] = useState(false)
   const [triggerStockfishFirstMove, setTriggerStockfishFirstMove] = useState(false);
-  const { dispatch } = useChess();
+  const { dispatch, state } = useChess();
 
   const handleStartGame = () => {
     dispatch({ type: 'RESET_GAME' });
@@ -256,6 +257,15 @@ const ChessGame: React.FC = () => {
                 transition={{ duration: 0.5, delay: 0.5 }}
               >
                 <MoveHistory />
+              </motion.div>
+              {/* Game Review Analysis */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+              >
+                {/* @ts-ignore */}
+                <GameReview moves={state.moveHistory} />
               </motion.div>
             </div>
           </motion.div>

@@ -72,6 +72,16 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
   }
 
   const handleSquareClick = (square: string) => {
+    // Block moves if the game is over or drawn
+    if (
+      game.isGameOver() ||
+      game.isDraw() ||
+      game.isStalemate() ||
+      game.isThreefoldRepetition() ||
+      game.isInsufficientMaterial()
+    ) {
+      return;
+    }
     // If playing vs computer, only allow user to move as their color
     if (vsComputer && game.turn() !== playerColor) return;
     const piece = game.get(square as Square)
