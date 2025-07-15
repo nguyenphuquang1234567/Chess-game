@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { analyzeGame } from './analyzeGame';
 import { ReviewSummary } from './types';
 import { FaChessKing, FaChessKing as FaChessKingBlack } from 'react-icons/fa';
@@ -19,19 +19,6 @@ const MOVE_COLORS: Record<string, string> = {
   miss: 'text-pink-400',
 };
 
-const MOVE_ICONS: Record<string, string> = {
-  excellent: '👍🏻', // Green thumbs up for Excellent
-};
-
-const SYMBOL_EXPLANATIONS: Record<string, string> = {
-  '!!': 'Brilliant: Sacrifice with deep purpose',
-  '!': 'Excellent: Nearly perfect',
-  '?!': 'Inaccuracy: Could be improved',
-  '?': 'Mistake: Significant error',
-  '??': 'Blunder: Major error',
-  '': 'Best/Good/Miss',
-};
-
 const GameReview: React.FC<GameReviewProps> = ({ moves, depth = 12 }) => {
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [loading, setLoading] = useState(false);
@@ -45,18 +32,11 @@ const GameReview: React.FC<GameReviewProps> = ({ moves, depth = 12 }) => {
       const result = await analyzeGame(moves, '/stockfish.js', 3, depth);
       setSummary(result);
       setHasAnalyzed(true);
-    } catch (e) {
+    } catch (e: any) {
       setError(e.message || 'Analysis failed');
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatEval = (evaluation: number): string => {
-    if (Math.abs(evaluation) > 9000) {
-      return evaluation > 0 ? 'Mate' : 'Mate';
-    }
-    return (evaluation / 100).toFixed(2);
   };
 
   if (!hasAnalyzed) {
@@ -120,7 +100,7 @@ const GameReview: React.FC<GameReviewProps> = ({ moves, depth = 12 }) => {
             <span className="text-green-300 font-bold text-lg mb-2">{summary.accuracyWhite}%</span>
             <div className="flex flex-wrap gap-1 justify-center">
               {moveTypes.map(type => (
-                <span key={type} className={`px-2 py-1 rounded-full font-semibold text-xs shadow-sm ${MOVE_COLORS[type] || ''} bg-white/20`}>{type.charAt(0).toUpperCase() + type.slice(1)}: {summary.moveCountsWhite ? summary.moveCountsWhite[type] : 0}</span>
+                <span key={type} className={`px-2 py-1 rounded-full font-semibold text-xs shadow-sm ${MOVE_COLORS[type] || ''} bg-white/20`}>{type.charAt(0).toUpperCase() + type.slice(1)}: {summary.moveCountsWhite ? summary.moveCountsWhite[type as keyof typeof summary.moveCountsWhite] : 0}</span>
               ))}
             </div>
           </div>
@@ -133,7 +113,7 @@ const GameReview: React.FC<GameReviewProps> = ({ moves, depth = 12 }) => {
             <span className="text-blue-300 font-bold text-lg mb-2">{summary.accuracyBlack}%</span>
             <div className="flex flex-wrap gap-1 justify-center">
               {moveTypes.map(type => (
-                <span key={type} className={`px-2 py-1 rounded-full font-semibold text-xs shadow-sm ${MOVE_COLORS[type] || ''} bg-white/20`}>{type.charAt(0).toUpperCase() + type.slice(1)}: {summary.moveCountsBlack ? summary.moveCountsBlack[type] : 0}</span>
+                <span key={type} className={`px-2 py-1 rounded-full font-semibold text-xs shadow-sm ${MOVE_COLORS[type] || ''} bg-white/20`}>{type.charAt(0).toUpperCase() + type.slice(1)}: {summary.moveCountsBlack ? summary.moveCountsBlack[type as keyof typeof summary.moveCountsBlack] : 0}</span>
               ))}
             </div>
           </div>

@@ -102,7 +102,7 @@ export async function analyzeGame(
       const bestMove = evalsBefore[0]?.pv[0] || '';
       // Play actual move
       const move = moveList[i];
-      const moveResult = chess.move(move);
+      chess.move(move);
       const fenAfter = chess.fen();
       
       // Check if this move resulted in checkmate
@@ -139,7 +139,7 @@ export async function analyzeGame(
       let isBrilliant = false;
       let isMiss = false;
       // Brilliant: not best move, sacrifices material, eval improves
-      if (move !== bestMove && actualEval >= bestEval && sacrificesMaterial(chess, move)) {
+      if (move !== bestMove && actualEval >= bestEval && sacrificesMaterial(chess)) {
         isBrilliant = true;
       }
       // Miss: missed mate or decisive win
@@ -224,7 +224,7 @@ export async function analyzeGame(
 }
 
 // Heuristic: check if move is a sacrifice (very basic)
-function sacrificesMaterial(chess: Chess, move: string): boolean {
+function sacrificesMaterial(chess: Chess): boolean {
   // TODO: Implement a more robust check
   // For now, just check if previous move captured a piece
   const history = chess.history({ verbose: true });

@@ -13,11 +13,9 @@ export class StockfishEngine {
   private engine: Worker | null = null;
   private isReady: boolean = false;
   private onMessage: ((msg: string) => void) | null = null;
-  private messageQueue: string[] = [];
   private resolveEval: ((evals: StockfishEval[]) => void) | null = null;
   private evals: StockfishEval[] = [];
   private multiPV: number = 1;
-  private depth: number = 18;
 
   constructor(stockfishPath: string = '/stockfish.js') {
     if (typeof window !== 'undefined') {
@@ -84,7 +82,6 @@ export class StockfishEngine {
 
   async evaluatePosition(fen: string, multiPV = 3, depth = 18): Promise<StockfishEval[]> {
     this.multiPV = multiPV;
-    this.depth = depth;
     await this.waitReady();
     this.send('ucinewgame');
     this.send(`setoption name MultiPV value ${multiPV}`);
