@@ -203,7 +203,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ vsComputer, playerColor, skillLevel }
 
     // Add difficulty-specific flavor (short)
     if (skillLevel <= 5) {
-      comment += ' (Let’s keep it fun!)'
+      // comment += ' (Let’s keep it fun!)'
     }
 
     return { comment }
